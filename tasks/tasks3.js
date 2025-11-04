@@ -1,3 +1,10 @@
+class StackNode {
+    constructor(value, prevNode) {
+        this.value = value;
+        this.prevNode = prevNode;
+    }
+}
+
 class Stack {
     constructor() {
         this.headNode = null;
@@ -39,10 +46,10 @@ class Stack {
    The task should be solved in at least two ways: using recursion and using a stack. You can also solve it using a queue.
 
     const obj = {
-    a: {
-        b: [1, 2],
-        '': { c: 2 }
-    }
+        a: {
+            b: [1, 2],
+            '': { c: 2 }
+        }
     };
 
     // Flattened result:
@@ -50,6 +57,54 @@ class Stack {
 
     console.log(flatten(obj))
 */
+
+function flattenStack(object) {
+    let result = [];
+    const stack = new Stack();
+
+    for (let key in object) {
+        stack.push({
+            keys: [key], 
+            value: object[key],
+        });
+    }
+
+    while (stack.head) {
+        const {
+            keys,
+            value,
+        } = stack.pop();
+
+
+       if (value !== null && typeof value === 'object') {
+            for (let key in value) {
+                stack.push({
+                    keys: [...keys, key],
+                    value: value[key],
+                });
+            }
+        } else {
+            result.push(
+                {
+                    key: keys.join('.'),
+                    value: value,
+                }
+            )
+        }
+    }
+
+    function convertCollapsed(array) {
+        const obj = {};
+        
+        array.forEach(elem => {
+            obj[elem.key] = elem.value;
+        })
+
+        return obj;
+    }
+
+    return convertCollapsed(result);
+}
 
 function flatten(object) {
     function collapse(object) {
@@ -86,6 +141,8 @@ function flatten(object) {
         return obj;
     }
 
+    console.log(collapse(object));
+
     return convertCollapsed(collapse(object));
 }
 
@@ -109,12 +166,27 @@ console.log(flatten({
     }
 }));
 
-class StackNode {
-    constructor(value, prevNode) {
-        this.value = value;
-        this.prevNode = prevNode;
+console.log('====');
+console.log(flattenStack({
+    a: {
+        b: {
+            c: 1,
+            d: 2
+        },
+        c: {
+            k: [1, 2, 3], 
+            r: {
+                l: "232",
+                ddd: "222",
+                "": {
+                    j: 2,
+                    y: 222,
+                },
+            }
+        }
     }
-}
+}));
+console.log('====');
 
 
 /*

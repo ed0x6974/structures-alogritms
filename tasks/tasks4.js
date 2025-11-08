@@ -165,3 +165,66 @@ console.log(u16vec.pop());            // 9
 console.log(u16vec.shift());          // 42
 console.log(u16vec.unshift(500));     // 2
 console.log(u16vec.length); // 2
+
+
+/*
+    Implement a Class for Describing a 3D Matrix
+
+    const matrix = new Matrix3D({x: 5, y: 5, z: 5});
+
+    matrix.set({x: 2, y: 1, z: 3}, 42);
+    console.log(matrix.get({x: 2, y: 1, z: 3})); // 42
+*/
+
+class Matrix3D {
+    #array = null;
+    #xLength = null;
+    #yLength = null;
+    #zLength = null;
+
+    constructor({x, y, z}) {
+        if (Math.min(x,y,z) < 1) {
+            throw new Error('invalid matrix');
+        }
+
+        this.#xLength = x;
+        this.#yLength = y;
+        this.#zLength = z;
+
+        this.#array = new Float32Array(this.#xLength*this.#yLength*this.#zLength);
+    }
+
+    getIndex({x, y, z}) {
+        return (x*this.#yLength*this.#zLength) + (y*this.#zLength) + (z);
+    }
+
+    set({x, y, z}, value) {
+        if (Math.min(x, y, z) < 0 || x >= this.#xLength || y >= this.#yLength || z >= this.#zLength) {
+            throw new Error('coords are invalid');
+        }
+
+        const index = this.getIndex({x,y,z});
+        this.#array[index] = value;
+    }
+
+    get({x, y, z}) {
+        if (x >= this.#xLength || y >= this.#yLength || z >= this.#zLength) {
+            throw new Error('coords are invalid');
+        }
+        
+        const index = this.getIndex({x,y,z});
+        return this.#array[index];
+    }
+}
+
+const matrix = new Matrix3D({x: 3, y: 3, z: 3});
+
+for (let z = 0; z < 3; z++) {
+    for (let x = 0; x < 3; x++) {
+        for (let y = 0; y < 3; y++) {
+            matrix.set({x, y, z}, z + 1);
+        }
+    }
+}
+
+console.log(matrix);

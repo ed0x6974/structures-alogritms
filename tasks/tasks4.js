@@ -35,11 +35,10 @@ class Vector {
     }
 
     getNewLength(newElemsLength) {
-        if (this.#filledLength + newElemsLength < this.#array.length * 2) {
-            return this.#array.length * 2;
-        } else {
-            return (this.#filledLength + newElemsLength) * 2;
-        }
+        return Math.max(
+            this.#array.length * 2, 
+            ((this.#filledLength + newElemsLength) * 2)
+        );
     }
 
     forEach(callback) {

@@ -58,8 +58,7 @@ class Vector {
         }
 
         elems.forEach(elem => {
-            const index = this.#filledLength > 0 ? this.#filledLength : 0;
-            this.#array[index] = elem;
+            this.#array[this.#filledLength] = elem;
             this.#filledLength++; 
         })
 

@@ -177,10 +177,10 @@ console.log(u16vec.length); // 2
 */
 
 class Matrix3D {
-    #array = null;
-    #xLength = null;
-    #yLength = null;
-    #zLength = null;
+    #array
+    #xLength
+    #yLength
+    #zLength
 
     constructor({x, y, z}) {
         if (Math.min(x,y,z) < 1) {
@@ -228,3 +228,258 @@ for (let z = 0; z < 3; z++) {
 }
 
 console.log(matrix);
+
+
+/*
+    Implement a class that creates a hash table
+
+    As keys we must be able to use primitives and objects.
+    You can invent any hash algorithm.
+
+    Collisions can be resolved either with separate chaining or with open addressing.
+    Resizing / rehashing of the internal buffer must be supported.
+
+    // set initial capacity of internal buffer
+    const map = new HashMap(256);
+
+    map.set('email', 'a@b.c');
+    map.set(1337, 'leet');
+    map.set(window, { sessionId: 'xyz' });
+
+    console.log(map.get(1337));         // "leet"
+    console.log(map.has(window));       // true
+    console.log(map.delete(window));    // { sessionId: 'xyz' }
+    console.log(map.has(window));       // false
+*/
+
+class Node {
+    constructor(value) {
+        this.value = value;
+        this.next = null;
+        this.prev = null;
+    }
+}
+
+class LinkedList {
+    constructor() {
+        this.first = null;
+    }
+
+    push(value) {
+        const node = new Node(value);
+        
+        if (this.first === null) {
+            this.first = node;
+        } else {
+            node.next = this.first;
+            this.first.prev = node;
+            this.first = node;
+        }
+    }
+
+    delete(node) {
+        if (this.first === node) {
+            this.first = this.first.next;
+        } else {
+            node.prev.next = node.next;
+
+            if (node.next) {
+                node.next.prev = node.prev;
+            }
+        }
+
+        return node.value;
+    }
+}
+
+class HashMap {
+    #capacity
+    #buffer
+
+    constructor(capacity) {
+        if (this.isPrime(capacity)) {
+            this.#capacity = capacity;
+        } else {
+            let testCapacity = capacity + 1; 
+
+            while (!this.isPrime(testCapacity)) {
+               testCapacity++;
+            }
+
+            this.#capacity = testCapacity;
+        }
+
+        this.#buffer = Array.from({ length: this.#capacity }, () => new LinkedList());
+    }
+
+    resizeBuffer(capacity) {
+        const oldBuffer = this.#buffer; 
+
+        if (this.isPrime(capacity)) {
+            this.#capacity = capacity;
+        } else {
+            let testCapacity = capacity + 1; 
+
+            while (!this.isPrime(testCapacity)) {
+               testCapacity++;
+            }
+
+            this.#capacity = testCapacity;
+        }
+
+        this.#buffer = Array.from({ length: this.#capacity }, () => new LinkedList());
+
+
+        oldBuffer.forEach((list) => {
+            let elem = list.first;
+
+            while (elem) {
+                const {
+                    key,
+                    value,
+                } = elem.value;
+
+                this.set(key, value);
+                elem = elem.next;
+            }
+        })
+    }
+
+    isPrime(value) {
+        if (value < 2) {
+            return false;
+        }
+
+        if (value === 2) {
+            return true;
+        }
+
+        if (value % 2 === 0) {
+            return false;
+        }
+
+        for (let i = 3; i <= Math.floor(Math.sqrt(value)); i = i+2){
+            if (value % i === 0) return false;
+        }
+
+        return true;
+    }
+
+    generateHash(value) {
+        if (value && typeof value === "object") {
+            const uniqueNumberShuffled = function() {
+                let t = Date.now();
+                t ^= (t << 21);
+                t ^= (t >>> 35);
+                t ^= (t << 4);
+                return t >>> 0;
+            }
+
+            if (!value.task4Hash || value.task4Capacity !== this.#capacity) {
+                const hash = uniqueNumberShuffled() % this.#capacity;
+                value.task4Hash = hash;
+                value.task4Capacity = this.#capacity;
+            }
+        
+            return value.task4Hash;
+        } else {
+            const string = value.toString();
+            let hash = 1;
+
+            for (let i = 0; i < string.length; i++) {
+                hash = ((hash * 31 + string.charCodeAt(i)) >>> 0) % this.#capacity; // Horner's method
+            }
+
+            return hash;
+        }
+    }
+
+    searchInList(list, key) {
+        let elem = list.first;
+
+        while (elem && elem.value.key !== key) {
+            elem = elem.next;
+        }
+
+        return elem;
+    }
+
+    has(key) {
+        const index = this.generateHash(key);
+        return Boolean(this.searchInList(this.#buffer[index], key));
+    }
+
+    set(key, value) {
+        const index = this.generateHash(key);
+
+        if (!this.#buffer[index].first) {
+            this.#buffer[index].push({
+                key,
+                value,
+            }) 
+        } else {
+            const list = this.#buffer[index];
+
+            const elem = this.searchInList(list, key);
+
+            if (elem) {
+                elem.value.value = value;
+            } else {
+                list.push({
+                    key,
+                    value,
+                })
+            }
+        }
+    }
+
+    get(key) {
+        const index = this.generateHash(key);
+
+        if (this.#buffer[index]) {
+            const list = this.#buffer[index];
+
+            const elem = this.searchInList(list, key);
+
+            if (elem) {
+                return elem.value.value;
+            } else {
+                return null;
+            }
+
+        } else {
+            return null;
+        }
+    }
+
+    delete(key) {
+        const index = this.generateHash(key);
+
+        if (this.#buffer[index]) {
+            const list = this.#buffer[index];
+
+            const elem = this.searchInList(list, key);
+
+            if (elem) {
+                return list.delete(elem).value;
+            }
+        }
+    }
+}
+
+const map = new HashMap(256);
+
+map.set('email', 'a@b.c');
+map.set(1337, 'leet');
+map.set(window, { sessionId: 'xyz' });
+
+console.log(map.get(1337));         // "leet"
+console.log(map.has(window));       // true
+console.log(map.delete(window));    // { sessionId: 'xyz' }
+console.log(map.has(window));       // false
+
+map.resizeBuffer(15);
+console.log(map.get(1337));
+console.log(map.has(window));
+console.log(map.has('email'));
+console.log(map.get('email'));

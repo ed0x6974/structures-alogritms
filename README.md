@@ -1,1 +1,14 @@
-# structures-alogritms-r-lafore
+Implementations (tasks):
+===
+- [Doubly linked list](./tasks/tasks.js#L1-L55)
+- [Iterable doubly linked list](./tasks/tasks.js#L1-L80)
+- [Structure based on ArrayBuffer](./tasks/tasks.js#L118-L281)
+- [Queue using a linked list](./tasks/tasks2.js#L1-L83)
+- [Double-Ended Queue (Deque)](./tasks/tasks2.js#L86-L228)
+- [Stack based on a typed array](./tasks/tasks2.js#L230-L296)
+- [Deep object flattening iterative (stack)](./tasks/tasks3.js#L42-L107)
+- [Deep object flattening recursive](./tasks/tasks3.js#L109-L167)
+- [Bracket group validation](./tasks/tasks3.js#L192-L245)
+- [Vector based on TypedArray](./tasks/tasks4.js#L1-L167)
+- [3D matrix based on Array](./tasks/tasks4.js#L170-L230)
+- [Hash table with chainins and resizing](./tasks/tasks4.js#L233-L485)

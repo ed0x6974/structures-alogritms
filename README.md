@@ -12,3 +12,4 @@ Implementations (tasks):
 - [Vector based on TypedArray](./tasks/tasks4.js#L1-L167)
 - [3D matrix based on Array](./tasks/tasks4.js#L170-L230)
 - [Hash table with chainins and resizing](./tasks/tasks4.js#L233-L485)
+- [Graph representation using matrix-based structures and adjacency lists; visualization with SVG](./tasks/tasks5.js)

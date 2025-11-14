@@ -126,7 +126,6 @@ class GraphVisual {
 
         let $path = null;
         if (isDirected) {
-            debugger;
             let $defs = this.svg.querySelector("defs");
             if (!$defs) {
                 $defs = document.createElementNS(svgns, "defs");
@@ -429,7 +428,6 @@ class MatrixGraph {
                     xPos: i,
                     yPos: k,
                 }) === 1) {
-                    debugger;
                     const isDirected = this.type === "directed";
                     this.graphVisual.drawEdge(i, k, isDirected);
                 }
@@ -439,21 +437,128 @@ class MatrixGraph {
 }
 
 class ListsGraph {
+    constructor(type = "undirected") {
+        this.vertexes = Array();
+        this.type = type;
+    }
 
-    constructor() {
+    addVertex(key) {
+        const index = this.vertexes.findIndex(vertex => vertex.key === key);
 
+        if (index !== -1) {
+            throw new Error('this vertex is already created');
+        }
+
+        this.vertexes.push({
+            key,
+            siblings: [],
+        })
+    }
+
+    removeVertex(key) {
+        const index = this.vertexes.findIndex(vertex => vertex.key === key);
+
+        if (index === -1) {
+            throw new Error("there is no vertex with this key");
+        }
+
+        this.vertexes.splice(index, 1);
+
+        this.vertexes.forEach((vertex) => {
+            const index = vertex.siblings.findIndex(sibling => sibling.key === key);
+
+            if (index >= 0) {
+                vertex.siblings.splice(index, 1);
+            }
+        })
+    }
+
+    removeConnection(key1, key2) {
+        const index1 = this.vertexes.findIndex(vertex => vertex.key === key1);
+        const index2 = this.vertexes.findIndex(vertex => vertex.key === key2);
+
+        if (index1 === -1 || index2 === -1) {
+            throw new Error("one of vertex is not found");
+        }
+
+        const vertex1 = this.vertexes[index1];
+        const vertex2 = this.vertexes[index2];
+
+        const index = vertex1.siblings.findIndex(vertex => vertex.key === vertex2.key);
+        debugger;
+        if (index >= 0) {
+            vertex1.siblings.splice(index, 1);
+        }
+        
+        if (this.type === "undirected") {
+            const index = vertex2.siblings.findIndex(vertex => vertex.key === vertex1.key);
+            if (index >= 0) {
+                vertex2.siblings.splice(index, 1);
+            }
+        }
+    }
+
+    connectVertex(key1, key2) {
+        const index1 = this.vertexes.findIndex(vertex => vertex.key === key1);
+        const index2 = this.vertexes.findIndex(vertex => vertex.key === key2);
+
+        if (index1 === -1 || index2 === -1) {
+            throw new Error("one of vertex is not found");
+        }
+ 
+        const vertex1 = this.vertexes[index1];
+        const vertex2 = this.vertexes[index2];
+
+        if (!vertex1.siblings.find(sibling => sibling.key === key2)) {
+            vertex1.siblings.push(vertex2);
+        }
+
+        if (this.type === "undirected") {
+            if (!vertex2.siblings.find(sibling => sibling.key === key1)) {
+                vertex2.siblings.push(vertex1);
+            }
+        }
+    }
+
+    visual() {
+        if (!this.graphVisual) {
+            this.graphVisual = new GraphVisual({
+                width: 1000,
+                height: 1000,
+            })
+        }
+
+        this.vertexes.forEach((vertex) => {
+            this.graphVisual.drawVertex(vertex.key, `${vertex.key}`);
+        })
+
+        this.vertexes.forEach((vertex) => {
+            vertex.siblings.forEach((sibling) => {
+                this.graphVisual.drawEdge(vertex.key, sibling.key, this.type === "directed");
+            })
+        })
     }
 }
 
 const graph = new MatrixGraph(20, "directed");
-const node0 = graph.addVertex('A');
-const node1 = graph.addVertex('B');
-const node2 = graph.addVertex('C');
-const node3 = graph.addVertex('D');
-const node4 = graph.addVertex('E');
+graph.addVertex('A');
+graph.addVertex('B');
+graph.addVertex('C');
+graph.addVertex('D');
+graph.addVertex('E');
 graph.removeVertex('C');
 graph.connectVertexes('D','A');
 graph.connectVertexes('B','A');
-const node5 = graph.addVertex('F');
+graph.addVertex('F');
 graph.drawMatrix();
 graph.visual();
+
+const graph2 = new ListsGraph("directed");
+graph2.addVertex('A');
+graph2.addVertex('B');
+graph2.addVertex('C');
+graph2.addVertex('D');
+graph2.connectVertex('A', 'B');
+graph2.connectVertex('B', 'A');
+graph2.removeConnection('A', 'B');
+graph2.visual();

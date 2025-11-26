@@ -252,7 +252,6 @@ class MatrixGraph {
 
             this.#buffer = Array(this.maxNodeSize + this.maxNodeSize * this.maxNodeSize).fill(this.MAX_WEIGHT + 1);
             this.#buffer.fill(0, 0, this.maxNodeSize);
-            console.log(this.#buffer);
         } else {
             this.isWeighted = false;
             this.#buffer = Array(this.maxNodeSize + this.maxNodeSize * this.maxNodeSize).fill(0);
@@ -274,11 +273,63 @@ class MatrixGraph {
     }
 
     hasSiblings(key) {
+        const index = this.keyMap.get(key);
 
+        for (let i = 0; i < this.maxNodeSize; i++) {
+            const matrixValue1 = this.getMatrixValue({
+                xPos: i,
+                yPos: index,
+            });
+
+            if (this.isWeighted) {
+                if (matrixValue1 <= this.MAX_WEIGHT && matrixValue1 >= this.MIN_WEIGHT) {
+                    return true;
+                }
+            } else {
+                if (matrixValue1 === 1) {
+                    return true;
+                }
+            }
+
+            const matrixValue2 = this.getMatrixValue({
+                xPos: index,
+                yPos: i,
+            });
+
+            if (this.isWeighted) {
+                if (matrixValue2 <= this.MAX_WEIGHT && matrixValue2 >= this.MIN_WEIGHT) {
+                    return true;
+                }
+            } else {
+                if (matrixValue2 === 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     isParent(key1, key2) {
-        
+        const index1 = this.keyMap.get(key1);
+        const index2 = this.keyMap.get(key2);
+
+        const value = this.getMatrixValue({
+            xPos: index1,
+            yPos: index2,
+        });
+
+        if (this.isWeighted) {
+            if (value >= this.MIN_WEIGHT && value <= this.MAX_WEIGHT) {
+                return true;
+            }
+        } else {
+            if (value === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     addVertex(key) {
@@ -648,6 +699,12 @@ graph.addVertex('E');
 graph.removeVertex('C');
 graph.connectVertexes('D','A', 1000);
 graph.connectVertexes('B','A', 500);
+console.log(graph.hasSiblings('B'));
+console.log(graph.hasSiblings('A'));
+console.log(graph.hasSiblings('D'));
+console.log(graph.hasSiblings('E'));
+console.log(graph.isParent('B', 'A'));
+console.log(graph.isParent('A', 'B'));
 graph.addVertex('F');
 graph.drawMatrix();
 graph.visual();

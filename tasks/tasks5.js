@@ -2,6 +2,9 @@
     Implement a graph using matrix-based structures (adjacency matrix) as well as using adjacency lists.
     Create several variants for both directed graphs (digraphs) and undirected graphs.
     Visualize the graphs as an image using SVG markup.
+
+    The API should provide functionality to check relationships, for example, that A is a parent of B, etc.
+    The API should allow describing directed graphs, undirected graphs, as well as adjacency graphs. It should also allow adding weights to all edges.
 */
 
 class GraphVisual {
@@ -9,7 +12,9 @@ class GraphVisual {
         width = 1000,
         height = 1000,
         vertexRadius = 50,
+        isWeighted = false,
     }){
+        this.isWeighted = isWeighted;
         const svgns = "http://www.w3.org/2000/svg";
         this.svg = document.createElementNS(svgns, "svg");
         this.maxX = width-vertexRadius;
@@ -37,9 +42,38 @@ class GraphVisual {
         this.edges = Array();
     } 
 
+    checkNewPosition(xPos1, yPos1) {
+        for (let i = 0; i < this.vertexes.length; i++) {
+            const {
+                xPos: xPos2,
+                yPos: yPos2,
+            } = this.vertexes[i];
+
+            const dx = xPos2 - xPos1;
+            const dy = yPos2 - yPos1;
+
+            const d = Math.sqrt(dx*dx + dy*dy);
+
+            if (d <= (this.radius * 2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     drawVertex(key, text) {
-        const xPos = Math.floor(Math.random() * (this.maxX - this.radius) + this.radius);
-        const yPos = Math.floor(Math.random() * (this.maxY - this.radius) + this.radius);
+        const generateRandomNumber = (min, max) => {
+            return Math.floor(Math.random() * (max) + min)
+        };
+
+        let xPos = generateRandomNumber(this.radius, this.maxX - this.radius);
+        let yPos = generateRandomNumber(this.radius, this.maxY - this.radius);
+
+        while (!this.checkNewPosition(xPos, yPos)) {
+            xPos = generateRandomNumber(this.radius, this.maxX - this.radius);
+            yPos = generateRandomNumber(this.radius, this.maxY - this.radius); 
+        }
 
         const svgns = "http://www.w3.org/2000/svg";
 
@@ -86,7 +120,7 @@ class GraphVisual {
         this.vertexes.splice(index, 1);
     }
 
-    drawEdge(vertexKey1, vertexKey2, isDirected) {
+    drawEdge(vertexKey1, vertexKey2, isDirected, weight) {
         const vertex1 = this.vertexes.find(v => v.key === vertexKey1);
         const vertex2 = this.vertexes.find(v => v.key === vertexKey2);
 
@@ -150,6 +184,26 @@ class GraphVisual {
             $line.setAttribute("marker-end", "url(#arrow)");
         }
 
+        if (this.isWeighted) {
+            const midX = (ax + bx) / 2;
+            const midY = (ay + by) / 2;
+
+            const offset = 10;
+            const textX = midX - ny * offset;
+            const textY = midY + nx * offset;
+
+            const $text = document.createElementNS(svgns, "text");
+            $text.setAttribute("x", textX);
+            $text.setAttribute("y", textY);
+            $text.setAttribute("fill", "red");
+            $text.setAttribute("font-size", "24");
+            $text.setAttribute("text-anchor", "middle");
+            $text.setAttribute("dominant-baseline", "middle");
+            $text.textContent = weight;
+
+            this.svg.appendChild($text);
+        }
+
         this.svg.appendChild($line);
         this.edges.push({
             vertexKey1,
@@ -183,10 +237,27 @@ class GraphVisual {
 class MatrixGraph {
     maxNodeSize;
     #buffer;
+    isWeighted;
 
-    constructor(maxNodeSize = 100, type="undirected") {
-        this.maxNodeSize = maxNodeSize;
-        this.#buffer = Array(this.maxNodeSize + this.maxNodeSize * this.maxNodeSize).fill(0);
+    constructor(maxNodeSize = 100, type="undirected", weightType = "nonWeghted") {
+        if (weightType !== "weighted" && weightType !== "nonWeghted") {
+            throw new Error('invalid weight type');
+        }
+
+        this.maxNodeSize = maxNodeSize; // will be reserved to store vertexes (0 = empty / 1 = vertex set)
+        if (weightType === "weighted") {
+            this.isWeighted = true;
+            this.MAX_WEIGHT = 2147483647 - 1;
+            this.MIN_WEIGHT = -2147483648 + 1;
+
+            this.#buffer = Array(this.maxNodeSize + this.maxNodeSize * this.maxNodeSize).fill(this.MAX_WEIGHT + 1);
+            this.#buffer.fill(0, 0, this.maxNodeSize);
+            console.log(this.#buffer);
+        } else {
+            this.isWeighted = false;
+            this.#buffer = Array(this.maxNodeSize + this.maxNodeSize * this.maxNodeSize).fill(0);
+        }
+        
         this.type = type;
         this.keyMap = new Map();
         this.valueMap = new Map();
@@ -202,15 +273,24 @@ class MatrixGraph {
         return this.#buffer[index];
     }
 
+    hasSiblings(key) {
+
+    }
+
+    isParent(key1, key2) {
+        
+    }
+
     addVertex(key) {
         let index = -1;
         
         for (let i = 0; i < this.maxNodeSize; i++) {
              if (this.#buffer[i] === 0) {
                 index = i;
-                this.#buffer[index] = 1;
-                this.keyMap.set(key, index);
-                this.valueMap.set(index, key);
+                this.#buffer[i] = 1;
+
+                this.keyMap.set(key, i);
+                this.valueMap.set(i, key);
                 break;
             }
         }
@@ -230,16 +310,18 @@ class MatrixGraph {
         const size = this.getSize();
         
         for (let i = 0; i < size; i++) {
+            const value = this.isWeighted ? this.MAX_WEIGHT + 1 : 0;
+
             this.setMatrixValue({
                 xPos: index,
                 yPos: i,
-                value: 0,
+                value,
             })
 
             this.setMatrixValue({
                 xPos: i,
                 yPos: index,
-                value: 0,
+                value,
             })
         }
 
@@ -256,17 +338,19 @@ class MatrixGraph {
             throw new Error('vertex with some key is not found');
         }
 
+        const value = this.isWeighted ? this.MAX_WEIGHT + 1 : 0;
+
         this.setMatrixValue({
             xPos: index1,
             yPos: index2,
-            value: 0,
+            value,
         });
 
         if (this.type === "undirected") {
             this.setMatrixValue({
                 xPos: index2,
                 yPos: index1,
-                value: 0,
+                value,
             });
         }
 
@@ -276,7 +360,7 @@ class MatrixGraph {
         this.valueMap.delete(index2);
     }
 
-    connectVertexes(key1, key2) {
+    connectVertexes(key1, key2, weight = 0) {
         const index1 = this.keyMap.get(key1);
         const index2 = this.keyMap.get(key2);
 
@@ -284,17 +368,23 @@ class MatrixGraph {
             throw new Error('vertex with some key is not found');
         }
 
+        if (this.isWeighted && (weight < this.MIN_WEIGHT || weight > this.MAX_WEIGHT)) {
+            throw new Error('weight is out of available range');
+        }
+
+        const value = this.isWeighted ? weight : 1;
+
         this.setMatrixValue({
             xPos: index1,
             yPos: index2,
-            value: 1,
+            value,
         });
 
         if (this.type === "undirected") {
             this.setMatrixValue({
                 xPos: index2,
                 yPos: index1,
-                value: 1,
+                value,
             });
         }
     }
@@ -302,7 +392,7 @@ class MatrixGraph {
     getSize() {
         for (let i = this.maxNodeSize - 1; i >= 0; i--) {
             if (this.#buffer[i] === 1) {
-                return i + 1; 
+                return i + 1;
             }
         }
 
@@ -415,6 +505,7 @@ class MatrixGraph {
             this.graphVisual = new GraphVisual({
                 width: 1000,
                 height: 1000,
+                isWeighted: this.isWeighted,
             })
         }
 
@@ -424,12 +515,20 @@ class MatrixGraph {
 
         for (let i = 0; i < this.getSize(); i++) {
             for (let k = 0; k < this.getSize(); k++) {
-                if (this.getMatrixValue({
+                const matrixValue = this.getMatrixValue({
                     xPos: i,
                     yPos: k,
-                }) === 1) {
-                    const isDirected = this.type === "directed";
-                    this.graphVisual.drawEdge(i, k, isDirected);
+                });
+                const isDirected = this.type === "directed";
+
+                if (this.isWeighted) {
+                    if (matrixValue <= this.MAX_WEIGHT && matrixValue >= this.MIN_WEIGHT) {
+                        this.graphVisual.drawEdge(i, k, isDirected, matrixValue);
+                    }
+                } else {
+                    if (matrixValue === 1) {
+                        this.graphVisual.drawEdge(i, k, isDirected);
+                    }
                 }
             }
         }
@@ -485,7 +584,7 @@ class ListsGraph {
         const vertex2 = this.vertexes[index2];
 
         const index = vertex1.siblings.findIndex(vertex => vertex.key === vertex2.key);
-        debugger;
+
         if (index >= 0) {
             vertex1.siblings.splice(index, 1);
         }
@@ -540,25 +639,27 @@ class ListsGraph {
     }
 }
 
-const graph = new MatrixGraph(20, "directed");
+const graph = new MatrixGraph(20, "directed", "weighted");
 graph.addVertex('A');
 graph.addVertex('B');
 graph.addVertex('C');
 graph.addVertex('D');
 graph.addVertex('E');
 graph.removeVertex('C');
-graph.connectVertexes('D','A');
-graph.connectVertexes('B','A');
+graph.connectVertexes('D','A', 1000);
+graph.connectVertexes('B','A', 500);
 graph.addVertex('F');
 graph.drawMatrix();
 graph.visual();
 
-const graph2 = new ListsGraph("directed");
-graph2.addVertex('A');
-graph2.addVertex('B');
-graph2.addVertex('C');
-graph2.addVertex('D');
-graph2.connectVertex('A', 'B');
-graph2.connectVertex('B', 'A');
-graph2.removeConnection('A', 'B');
-graph2.visual();
+// const graph2 = new ListsGraph("directed");
+// graph2.addVertex('A');
+// graph2.addVertex('B');
+// graph2.addVertex('C');
+// graph2.addVertex('D');
+// graph2.connectVertex('A', 'B');
+// graph2.connectVertex('B', 'A');
+// graph2.connectVertex('D', 'B');
+// graph2.connectVertex('B', 'C');
+// graph2.removeConnection('A', 'B');
+// graph2.visual();

@@ -5,6 +5,8 @@
 
     The API should provide functionality to check relationships, for example, that A is a parent of B, etc.
     The API should allow describing directed graphs, undirected graphs, as well as adjacency graphs. It should also allow adding weights to all edges.
+
+    Implement transitive closure
 */
 
 class GraphVisual {
@@ -184,6 +186,8 @@ class GraphVisual {
             $line.setAttribute("marker-end", "url(#arrow)");
         }
 
+        let text = null;
+
         if (this.isWeighted) {
             const midX = (ax + bx) / 2;
             const midY = (ay + by) / 2;
@@ -202,6 +206,7 @@ class GraphVisual {
             $text.textContent = weight;
 
             this.svg.appendChild($text);
+            text = $text;
         }
 
         this.svg.appendChild($line);
@@ -210,6 +215,7 @@ class GraphVisual {
             vertexKey2,
             line: $line,
             path: $path,
+            text,
         })
     }
 
@@ -224,13 +230,41 @@ class GraphVisual {
         const {
             line: $line,
             path: $path,
+            text: $text,
         } = edge;
         
         this.svg.removeChild($line);
         if ($path) {
             this.svg.removeChild($path);
         }
+        if ($text) {
+            this.svg.removeChild($text);
+        }
         this.edges.splice(index, 1);
+    }
+
+    cleanup() {
+        const vertexesKeys = this.vertexes.map(({key}) => key);
+        const edgesKeys = this.edges.map(({vertexKey1, vertexKey2}) => {
+            return {
+                vertexKey1,
+                vertexKey2,
+            }
+        });
+
+        vertexesKeys.forEach((key) => {
+            this.removeVertex(key);
+        });
+
+        edgesKeys.forEach(({
+            vertexKey1,
+            vertexKey2,
+        }) => {
+            this.removeEdge(
+                vertexKey1,
+                vertexKey2
+            )
+        });
     }
 }
 
@@ -239,8 +273,8 @@ class MatrixGraph {
     #buffer;
     isWeighted;
 
-    constructor(maxNodeSize = 100, type="undirected", weightType = "nonWeghted") {
-        if (weightType !== "weighted" && weightType !== "nonWeghted") {
+    constructor(maxNodeSize = 100, type="undirected", weightType = "nonWeighted") {
+        if (weightType !== "weighted" && weightType !== "nonWeighted") {
             throw new Error('invalid weight type');
         }
 
@@ -450,6 +484,78 @@ class MatrixGraph {
         return 1;
     }
 
+    computeTransitiveClosure() {
+        const matrixSize = this.getSize();
+
+        // Transitive closure by row propagation
+        let isChanged = true;
+
+        while (isChanged) {
+            isChanged = false;
+
+            for (let i = 0; i < matrixSize; i++) {
+                for (let j = 0; j < matrixSize; j++) {
+                    const value_i_j = this.getMatrixValue({
+                        xPos: j,
+                        yPos: i,
+                    });
+
+                    if (this.isWeighted) {
+                        if (value_i_j > this.MAX_WEIGHT) continue;
+                    } else {
+                        if (!value_i_j) continue;
+                    }
+
+                    if (i === j) continue; 
+
+                    for (let k = 0; k < matrixSize; k++) {
+                        const value_i_k = this.getMatrixValue({
+                            xPos: k,
+                            yPos: i,
+                        });
+
+                        const value_j_k = this.getMatrixValue({
+                            xPos: k,
+                            yPos: j,
+                        });
+
+                        if (this.isWeighted) {
+                            const setNewWeight = (value) => {
+                                this.setMatrixValue({
+                                    xPos: k,
+                                    yPos: i,
+                                    value,
+                                })
+
+                                isChanged = true;
+                            }
+
+                            const candidateWeight = value_j_k + value_i_j;
+                            
+                            if (value_i_k > this.MAX_WEIGHT) {
+                                if (value_j_k <= this.MAX_WEIGHT) {
+                                    setNewWeight(candidateWeight);
+                                }
+                            } else if (value_i_k > candidateWeight) {
+                                setNewWeight(candidateWeight);
+                            }
+                        } else {
+                            if (value_i_k === 0 && value_j_k === 1) {
+                                this.setMatrixValue({
+                                    xPos: k,
+                                    yPos: i,
+                                    value: 1,
+                                })
+
+                                isChanged = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }    
+
     drawMatrix() {
         const sizeToShow = this.getSize();
 
@@ -558,6 +664,8 @@ class MatrixGraph {
                 height: 1000,
                 isWeighted: this.isWeighted,
             })
+        } else {
+            this.graphVisual.cleanup();
         }
 
         for (let i = 0; i < this.getSize(); i++) {
@@ -696,9 +804,10 @@ graph.addVertex('B');
 graph.addVertex('C');
 graph.addVertex('D');
 graph.addVertex('E');
-graph.removeVertex('C');
-graph.connectVertexes('D','A', 1000);
-graph.connectVertexes('B','A', 500);
+graph.connectVertexes('A','B', 30);
+graph.connectVertexes('B','C', 50);
+graph.connectVertexes('C','D', 10);
+graph.connectVertexes('D','E', 200);
 console.log(graph.hasSiblings('B'));
 console.log(graph.hasSiblings('A'));
 console.log(graph.hasSiblings('D'));
@@ -708,6 +817,11 @@ console.log(graph.isParent('A', 'B'));
 graph.addVertex('F');
 graph.drawMatrix();
 graph.visual();
+debugger;
+graph.computeTransitiveClosure();
+graph.drawMatrix();
+graph.visual();
+debugger;
 
 // const graph2 = new ListsGraph("directed");
 // graph2.addVertex('A');

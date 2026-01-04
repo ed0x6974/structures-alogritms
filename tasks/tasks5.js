@@ -7,6 +7,8 @@
     The API should allow describing directed graphs, undirected graphs, as well as adjacency graphs. It should also allow adding weights to all edges.
 
     Implement transitive closure
+
+    Implement iterators that perform depth-first and breadth-first traversals of a graph, as well as a topological sorting method.
 */
 
 class GraphVisual {
@@ -130,6 +132,14 @@ class GraphVisual {
             throw new Error('some vertex is not found');
         }
 
+        if (!isDirected) {
+            const isAlreadyAdded = Boolean(this.edges.find(edge => {
+                return (edge.vertexKey1 === vertexKey2 && edge.vertexKey2 === vertexKey1);
+            }));
+
+            if (isAlreadyAdded) return;
+        }
+
         const {
             xPos: xPos1,
             yPos: yPos1,
@@ -140,8 +150,14 @@ class GraphVisual {
             yPos: yPos2,
         } = vertex2;
 
+        if (xPos2 === xPos1 && yPos2 === yPos1) {
+            console.error('loop is not implemented, skipping...');
+            return;
+        }
+
         const dx = xPos2 - xPos1;
         const dy = yPos2 - yPos1;
+
         const dist = Math.sqrt(dx*dx + dy*dy)
         const nx = dx / dist;
         const ny = dy / dist;
@@ -296,52 +312,19 @@ class MatrixGraph {
         this.valueMap = new Map();
     }
 
-    setMatrixValue({xPos, yPos, value}) {
-        const index = this.maxNodeSize + this.maxNodeSize * xPos + yPos;
+    setMatrixValue({yPos, xPos, value}) {
+        const index = this.maxNodeSize + this.maxNodeSize * yPos + xPos;
         this.#buffer[index] = value;
     }
 
-    getMatrixValue({xPos, yPos}) {
-        const index = this.maxNodeSize + this.maxNodeSize * xPos + yPos;
+    getMatrixValue({yPos, xPos}) {
+        const index = this.maxNodeSize + this.maxNodeSize * yPos + xPos;
         return this.#buffer[index];
     }
 
     hasSiblings(key) {
-        const index = this.keyMap.get(key);
-
-        for (let i = 0; i < this.maxNodeSize; i++) {
-            const matrixValue1 = this.getMatrixValue({
-                xPos: i,
-                yPos: index,
-            });
-
-            if (this.isWeighted) {
-                if (matrixValue1 <= this.MAX_WEIGHT && matrixValue1 >= this.MIN_WEIGHT) {
-                    return true;
-                }
-            } else {
-                if (matrixValue1 === 1) {
-                    return true;
-                }
-            }
-
-            const matrixValue2 = this.getMatrixValue({
-                xPos: index,
-                yPos: i,
-            });
-
-            if (this.isWeighted) {
-                if (matrixValue2 <= this.MAX_WEIGHT && matrixValue2 >= this.MIN_WEIGHT) {
-                    return true;
-                }
-            } else {
-                if (matrixValue2 === 1) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        const siblings = this.getAllSiblings(key);
+        return siblings.length > 0;
     }
 
     isParent(key1, key2) {
@@ -349,8 +332,8 @@ class MatrixGraph {
         const index2 = this.keyMap.get(key2);
 
         const value = this.getMatrixValue({
-            xPos: index1,
-            yPos: index2,
+            yPos: index1,
+            xPos: index2,
         });
 
         if (this.isWeighted) {
@@ -364,6 +347,52 @@ class MatrixGraph {
         }
 
         return false;
+    }
+
+    getAllSiblings(key) {
+        debugger;
+        const index = this.keyMap.get(key);
+        const siblings = [];
+
+        for (let i = 0; i < this.maxNodeSize; i++) {
+            const matrixValue1 = this.getMatrixValue({
+                xPos: i,
+                yPos: index,
+            });
+
+            if (this.isWeighted) {
+                if (matrixValue1 <= this.MAX_WEIGHT && matrixValue1 >= this.MIN_WEIGHT) {
+                    siblings.push(this.valueMap.get(i));
+                    continue;
+                }
+            } else {
+                if (matrixValue1 === 1) {
+                    siblings.push(this.valueMap.get(i));
+                    continue;               
+                }
+            }
+
+            if (this.type === 'undirected') {
+                const matrixValue2 = this.getMatrixValue({
+                    xPos: index,
+                    yPos: i,
+                });
+
+                if (this.isWeighted) {
+                    if (matrixValue2 <= this.MAX_WEIGHT && matrixValue2 >= this.MIN_WEIGHT) {
+                        siblings.push(this.valueMap.get(i));
+                        continue;
+                    }
+                } else {
+                    if (matrixValue2 === 1) {
+                        siblings.push(this.valueMap.get(i));
+                        continue;
+                    }
+                } 
+            }
+        }
+
+        return siblings;
     }
 
     addVertex(key) {
@@ -426,15 +455,15 @@ class MatrixGraph {
         const value = this.isWeighted ? this.MAX_WEIGHT + 1 : 0;
 
         this.setMatrixValue({
-            xPos: index1,
-            yPos: index2,
+            yPos: index1,
+            xPos: index2,
             value,
         });
 
         if (this.type === "undirected") {
             this.setMatrixValue({
-                xPos: index2,
-                yPos: index1,
+                yPos: index2,
+                xPos: index1,
                 value,
             });
         }
@@ -460,15 +489,15 @@ class MatrixGraph {
         const value = this.isWeighted ? weight : 1;
 
         this.setMatrixValue({
-            xPos: index1,
-            yPos: index2,
+            yPos: index1,
+            xPos: index2,
             value,
         });
 
         if (this.type === "undirected") {
             this.setMatrixValue({
-                xPos: index2,
-                yPos: index1,
+                yPos: index2,
+                xPos: index1,
                 value,
             });
         }
@@ -495,15 +524,15 @@ class MatrixGraph {
 
             for (let i = 0; i < matrixSize; i++) {
                 for (let j = 0; j < matrixSize; j++) {
-                    const value_i_j = this.getMatrixValue({
-                        xPos: j,
-                        yPos: i,
+                    const value_j_i = this.getMatrixValue({
+                        xPos: i,
+                        yPos: j,
                     });
 
                     if (this.isWeighted) {
-                        if (value_i_j > this.MAX_WEIGHT) continue;
+                        if (value_j_i > this.MAX_WEIGHT) continue;
                     } else {
-                        if (!value_i_j) continue;
+                        if (!value_j_i) continue;
                     }
 
                     if (i === j) continue; 
@@ -523,27 +552,32 @@ class MatrixGraph {
                             const setNewWeight = (value) => {
                                 this.setMatrixValue({
                                     xPos: k,
-                                    yPos: i,
+                                    yPos: j,
                                     value,
                                 })
 
                                 isChanged = true;
                             }
 
-                            const candidateWeight = value_j_k + value_i_j;
-                            
                             if (value_i_k > this.MAX_WEIGHT) {
-                                if (value_j_k <= this.MAX_WEIGHT) {
-                                    setNewWeight(candidateWeight);
-                                }
-                            } else if (value_i_k > candidateWeight) {
+                                continue;
+                            }
+
+                            if (this.MAX_WEIGHT - value_j_i < value_i_k) {
+                                console.error('max weight overflow');
+                                continue;
+                            }
+
+                            const candidateWeight = value_i_k + value_j_i;
+
+                            if (value_j_k > this.MAX_WEIGHT || value_j_k > candidateWeight) {
                                 setNewWeight(candidateWeight);
                             }
                         } else {
-                            if (value_i_k === 0 && value_j_k === 1) {
+                            if (value_i_k === 1 && value_j_k === 0) {
                                 this.setMatrixValue({
                                     xPos: k,
-                                    yPos: i,
+                                    yPos: j,
                                     value: 1,
                                 })
 
@@ -631,20 +665,20 @@ class MatrixGraph {
         $table.appendChild($thead);
 
         const $tbody = document.createElement('tbody');
-        for (let x = 0; x < sizeToShow; x++){
+        for (let y = 0; y < sizeToShow; y++){
             const $row = document.createElement('tr');
 
-            for (let y = -1; y < sizeToShow; y++) {
+            for (let x = -1; x < sizeToShow; x++) {
                 const $td = document.createElement('td');
 
-                if (y >= 0) {
+                if (x >= 0) {
                     $td.textContent = this.getMatrixValue({
-                        xPos: x,
                         yPos: y,
+                        xPos: x,
                     })
                 } else {
-                    const key = this.valueMap.has(x) ? ` (${this.valueMap.get(x)})` : '';
-                    $td.textContent = `${x}${key}`;
+                    const key = this.valueMap.has(y) ? ` (${this.valueMap.get(y)})` : '';
+                    $td.textContent = `${y}${key}`;
                     $td.classList.add('key');
                 }
                 $row.appendChild($td); 
@@ -798,20 +832,65 @@ class ListsGraph {
     }
 }
 
+function getIterator({type = "DFS", head, getAllSiblings}) {
+    return function() {
+        const stack = [head];
+        const visited = [];
+
+        return {
+            getNextKey() {
+                if (stack.length === 0) return null;
+
+                if (type === "DFS") {
+                    return stack.pop();
+                }
+
+                if (type === "BFS") {
+                    return stack.shift();
+                }
+                
+            },
+            next() {
+                while (true) {
+                    let currentKey = this.getNextKey();
+
+                    if (currentKey === null) {
+                        return {
+                            done: true,
+                        }
+                    }
+
+                    if (!visited.includes(currentKey)) {
+                        stack.push(...getAllSiblings(currentKey));
+                        visited.push(currentKey);
+
+                        return {
+                            done: false,
+                            value: currentKey,
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+};
+
+
 const graph = new MatrixGraph(20, "directed", "weighted");
 graph.addVertex('A');
 graph.addVertex('B');
 graph.addVertex('C');
 graph.addVertex('D');
 graph.addVertex('E');
-graph.connectVertexes('A','B', 30);
-graph.connectVertexes('B','C', 50);
-graph.connectVertexes('C','D', 10);
-graph.connectVertexes('D','E', 200);
-console.log(graph.hasSiblings('B'));
-console.log(graph.hasSiblings('A'));
-console.log(graph.hasSiblings('D'));
-console.log(graph.hasSiblings('E'));
+graph.connectVertexes('A','B', 10);
+graph.connectVertexes('B','C', 20);
+graph.connectVertexes('C','D', 30);
+graph.connectVertexes('D','E', 40);
+// console.log(graph.hasSiblings('B'));
+// console.log(graph.hasSiblings('A'));
+// console.log(graph.hasSiblings('D'));
+// console.log(graph.hasSiblings('E'));
 console.log(graph.isParent('B', 'A'));
 console.log(graph.isParent('A', 'B'));
 graph.addVertex('F');
@@ -822,6 +901,16 @@ graph.computeTransitiveClosure();
 graph.drawMatrix();
 graph.visual();
 debugger;
+
+graph[Symbol.iterator] = getIterator({
+    type: "DFS",
+    head: "A", 
+    getAllSiblings: graph.getAllSiblings.bind(graph)
+});
+
+for (let num of graph) {
+  console.log('num: ', num);
+}
 
 // const graph2 = new ListsGraph("directed");
 // graph2.addVertex('A');
@@ -834,3 +923,5 @@ debugger;
 // graph2.connectVertex('B', 'C');
 // graph2.removeConnection('A', 'B');
 // graph2.visual();
+
+window.Graph = graph;

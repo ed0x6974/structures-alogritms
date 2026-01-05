@@ -394,6 +394,20 @@ class MatrixGraph {
         return null;
     }
 
+    getHeadVertex() {
+        const key = this.findVertexWithNoEdges();
+
+        if (key) {
+            return key;
+        }
+
+        for (let i = 0; i < this.maxNodeSize; i++) {
+            if (this.#buffer[i] === 1) {
+                return this.valueMap.get(i);
+            }
+        }
+    }
+
     setMatrixValue({yPos, xPos, value}) {
         const index = this.maxNodeSize + this.maxNodeSize * yPos + xPos;
         this.#buffer[index] = value;
@@ -938,9 +952,9 @@ class ListsGraph {
     }
 }
 
-function getIterator({type = "DFS", head, getAllSiblings}) {
+function getIterator({type = "DFS", getHead, getAllSiblings}) {
     return function() {
-        const stack = [head];
+        const stack = [getHead()];
         const visited = [];
 
         return {
@@ -1010,12 +1024,12 @@ debugger;
 
 graph[Symbol.iterator] = getIterator({
     type: "DFS",
-    head: "A", 
+    getHead: graph.getHeadVertex.bind(graph), 
     getAllSiblings: graph.getAllSiblings.bind(graph)
 });
 
-for (let num of graph) {
-  console.log('num: ', num);
+for (let vertex of graph) {
+  console.log('vertex: ', vertex);
 }
 
 // const graph2 = new ListsGraph("directed");

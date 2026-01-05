@@ -289,7 +289,7 @@ class MatrixGraph {
     #buffer;
     isWeighted;
 
-    constructor(maxNodeSize = 100, type="undirected", weightType = "nonWeighted") {
+    constructor(maxNodeSize = 100, type="undirected", weightType = "nonWeighted", initialData) {
         if (weightType !== "weighted" && weightType !== "nonWeighted") {
             throw new Error('invalid weight type');
         }
@@ -306,10 +306,92 @@ class MatrixGraph {
             this.isWeighted = false;
             this.#buffer = Array(this.maxNodeSize + this.maxNodeSize * this.maxNodeSize).fill(0);
         }
-        
+
         this.type = type;
-        this.keyMap = new Map();
-        this.valueMap = new Map();
+        
+        if (initialData) {
+            const {
+                buffer,
+                keyMap,
+                valueMap,
+            } = initialData;
+
+            this.#buffer = [...buffer];
+            this.keyMap = new Map(keyMap);
+            this.valueMap = new Map(valueMap);
+        } else {
+            this.keyMap = new Map();
+            this.valueMap = new Map();
+        }
+    }
+
+    topologicalSort() {
+        const weightType = this.isWeighted ? "weighted" : "nonWeighted";
+        const newGraph = new MatrixGraph(this.maxNodeSize, this.type, weightType, {
+            buffer: this.#buffer,
+            keyMap: this.keyMap,
+            valueMap: this.valueMap,
+        });
+        const vertexesCount = newGraph.getVertexesCount();
+        const sorted = [];
+
+        while (true) {
+            const newVertex = newGraph.findVertexWithNoEdges();
+
+            if (newVertex === null) {
+                break;
+            }
+
+            sorted.push(newVertex);
+            newGraph.removeVertex(newVertex);
+        }
+
+        if (sorted.length === vertexesCount) {
+            return sorted;
+        }
+
+        console.error('topoligical sort is impossible');
+        return null;
+    }
+
+    findVertexWithNoEdges() {
+        if (this.type === "undirected") {
+            throw new Error("cannot find vertex with no edges for undirected graph");
+        }
+
+        const size = this.getSize();
+        for (let x = 0; x < size; x++) {
+            let noEdges = true;
+            
+            if (this.#buffer[x] === 0) {
+                continue;
+            }
+
+            for (let y = 0; y < size; y++) {
+                const matrixValue = this.getMatrixValue({
+                    yPos: y,
+                    xPos: x,
+                });
+
+                if (this.isWeighted) {
+                    if (matrixValue <= this.MAX_WEIGHT && matrixValue >= this.MIN_WEIGHT) {
+                        noEdges = false;
+                        break;
+                    }
+                } else {
+                    if (matrixValue === 1) {
+                        noEdges = false;
+                        break;
+                    }
+                }
+            }
+
+            if (noEdges) {
+                return this.valueMap.get(x);
+            }
+        }
+
+        return null;
     }
 
     setMatrixValue({yPos, xPos, value}) {
@@ -350,7 +432,6 @@ class MatrixGraph {
     }
 
     getAllSiblings(key) {
-        debugger;
         const index = this.keyMap.get(key);
         const siblings = [];
 
@@ -503,6 +584,19 @@ class MatrixGraph {
         }
     }
 
+    getVertexesCount() {
+        const size = this.getSize();
+        let count = 0;
+
+        for (let i = 0; i < size; i++) {
+            if (this.#buffer[i] === 1) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     getSize() {
         for (let i = this.maxNodeSize - 1; i >= 0; i--) {
             if (this.#buffer[i] === 1) {
@@ -651,6 +745,10 @@ class MatrixGraph {
         const $headerRow = document.createElement('tr');
 
         for (let i = -1; i < sizeToShow; i++) {
+            if (this.#buffer[i] === 0) {
+                continue;
+            }
+
             const th = document.createElement('th');
             if (i >= 0) {
                 const key = this.valueMap.has(i) ? ` (${this.valueMap.get(i)})` : '';
@@ -668,7 +766,15 @@ class MatrixGraph {
         for (let y = 0; y < sizeToShow; y++){
             const $row = document.createElement('tr');
 
+            if (this.#buffer[y] === 0) {
+                continue;
+            }
+
             for (let x = -1; x < sizeToShow; x++) {
+                if (this.#buffer[x] === 0) {
+                    continue;
+                }
+
                 const $td = document.createElement('td');
 
                 if (x >= 0) {
@@ -709,8 +815,8 @@ class MatrixGraph {
         for (let i = 0; i < this.getSize(); i++) {
             for (let k = 0; k < this.getSize(); k++) {
                 const matrixValue = this.getMatrixValue({
-                    xPos: i,
-                    yPos: k,
+                    yPos: i,
+                    xPos: k,
                 });
                 const isDirected = this.type === "directed";
 

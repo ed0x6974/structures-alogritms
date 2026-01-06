@@ -13,3 +13,4 @@ Implementations (tasks):
 - [3D matrix based on Array](./tasks/tasks4.js#L170-L230)
 - [Hash table with chainins and resizing](./tasks/tasks4.js#L233-L485)
 - [Graph representation using matrix-based structures and adjacency lists; visualization with SVG](./tasks/tasks5.js)
+- [Universal binary search functions](./tasks/tasks6.js)

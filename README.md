@@ -14,3 +14,4 @@ Implementations (tasks):
 - [Hash table with chainins and resizing](./tasks/tasks4.js#L233-L485)
 - [Graph representation using matrix-based structures and adjacency lists; visualization with SVG](./tasks/tasks5.js)
 - [Universal binary search functions](./tasks/tasks6.js)
+- [Binary Search Tree (BST), traversal DFS BFS](./tasks/tasks7.js)

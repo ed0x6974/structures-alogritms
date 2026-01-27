@@ -15,3 +15,4 @@ Implementations (tasks):
 - [Graph representation using matrix-based structures and adjacency lists; visualization with SVG](./tasks/tasks5.js)
 - [Universal binary search functions](./tasks/tasks6.js)
 - [Binary Search Tree (BST), traversal DFS BFS](./tasks/tasks7.js)
+- [Heap Sort in-place](./tasks/tasks8.js)

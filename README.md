@@ -16,3 +16,4 @@ Implementations (tasks):
 - [Universal binary search functions](./tasks/tasks6.js)
 - [Binary Search Tree (BST), traversal DFS BFS](./tasks/tasks7.js)
 - [Heap Sort in-place](./tasks/tasks8.js)
+- [isDigit without RegEx](./tasks/tasks9.js)
